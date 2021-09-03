@@ -85,6 +85,11 @@ Supported formats:
 - uri
 - uuid
 
+####oneOf
+```@constraint(oneOf: ['test', 'hello'])```
+Value should be equal to one of the strings supplied
+
+
 ### Int/Float
 #### min
 ```@constraint(min: 3)```
@@ -106,9 +111,17 @@ Ensure value is less than
 ```@constraint(multipleOf: 10)```
 Ensure value is a multiple
 
+###Lists
+####minListLength"""
+```@constraint(minListLengt: 10)```
+Ensure list length is greater than
+
+####maxListLength"""
+```@constraint(maxListLengt: 10)```
+Ensure list length is less than
+
 ### ConstraintDirectiveError
 Each validation error throws a `ConstraintDirectiveError`. Combined with a formatError function, this can be used to customise error messages.
-
 ```js
 {
   code: 'ERR_GRAPHQL_CONSTRAINT_VALIDATION',

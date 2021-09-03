@@ -91,4 +91,10 @@ function validate (fieldName, args, value) {
         [{ arg: 'format', value: args.format }])
     }
   }
+
+  if (args.oneOf && !args.oneOf.includes(value)) {
+    throw new ValidationError(fieldName,
+      `${value} is not one of ${args.oneOf}`,
+      [{ arg: 'oneOf', value: args.oneOf }])
+  }
 }
