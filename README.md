@@ -85,7 +85,7 @@ Supported formats:
 - uri
 - uuid
 
-####oneOf
+#### oneOf
 ```@constraint(oneOf: ['test', 'hello'])```
 Value should be equal to one of the strings supplied
 
@@ -111,12 +111,12 @@ Ensure value is less than
 ```@constraint(multipleOf: 10)```
 Ensure value is a multiple
 
-###Lists
-####minListLength"""
+### Lists
+#### minListLength"""
 ```@constraint(minListLengt: 10)```
 Ensure list length is greater than
 
-####maxListLength"""
+#### maxListLength"""
 ```@constraint(maxListLengt: 10)```
 Ensure list length is less than
 
