@@ -6,18 +6,12 @@ module.exports = class ConstraintListType extends GraphQLScalarType {
     super({
       name: uniqueTypeName,
       serialize (value) {
-        value = type.serialize(value)
-
         validate(fieldName, args, value)
-
         return value
       },
       parseValue (value) {
-        value = type.serialize(value)
-
         validate(fieldName, args, value)
-
-        return type.parseValue(value)
+        return value
       },
       parseLiteral (ast) {
         switch (ast.kind) {
