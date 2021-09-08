@@ -14,7 +14,7 @@ function constraintDirective () {
     if (directiveArgumentMap.uniqueTypeName) {
       uniqueTypeName = directiveArgumentMap.uniqueTypeName.replace(/\W/g, '')
     } else {
-      uniqueTypeName = `${fieldName}_${type.name}_${notNull ? 'NotNull_' : ''}` + Object.entries(directiveArgumentMap)
+      uniqueTypeName = `${fieldName}_${isListType(type) ? 'List' : type.name}_${notNull ? 'NotNull_' : ''}` + Object.entries(directiveArgumentMap)
         .map(([key, value]) => `${key}_${value.toString().replace(/\W/g, '')}`)
         .join('_')
     }
