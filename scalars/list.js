@@ -1,40 +1,44 @@
-const { GraphQLScalarType, Kind } = require('graphql')
+const { GraphQLScalarType, Kind, coerceInputValue } = require('graphql')
+const { parseInputValueLiteral } = require('@graphql-tools/utils')
 const ValidationError = require('../lib/error')
 
 module.exports = class ConstraintListType extends GraphQLScalarType {
   constructor (fieldName, uniqueTypeName, type, args) {
     super({
       name: uniqueTypeName,
-      serialize (value) {
-        validate(fieldName, args, value)
-        return value
+      serialize (outputValue) {
+        validate(fieldName, args, outputValue)
+        return outputValue
       },
-      parseValue (value) {
-        validate(fieldName, args, value)
-        return value
+      parseValue (inputValue) {
+        coerceInputValue(inputValue, type)
+        validate(fieldName, args, inputValue)
+        return inputValue
       },
-      parseLiteral (ast) {
-        switch (ast.kind) {
+      parseLiteral (valueNode) {
+        switch (valueNode.kind) {
           case Kind.BOOLEAN:
           case Kind.STRING:
-            return ast.value
+            return valueNode.value
           case Kind.INT:
           case Kind.FLOAT:
-            return Number(ast.value)
+            return Number(valueNode.value)
           case Kind.LIST: {
-            const values = ast.values.map(this.parseLiteral)
+            const values = parseInputValueLiteral(type, valueNode.values)
             validate(fieldName, args, values)
             return values
           }
           case Kind.OBJECT:
-            return ast.fields.reduce((accumulator, field) => {
-              accumulator[field.name.value] = this.parseLiteral(field.value)
-              return accumulator
+            return valueNode.fields.reduce((object, field) => {
+              object[field.name.value] = this.parseLiteral(field.value)
+              return object
             }, {})
           case Kind.NULL:
             return null
+          case Kind.VARIABLE:
+            return { kind: 'Variable', variableName: valueNode.name.value }
           default:
-            throw new Error(`Unexpected kind in parseLiteral: ${ast.kind}`)
+            return valueNode.value
         }
       }
     })
@@ -44,13 +48,13 @@ module.exports = class ConstraintListType extends GraphQLScalarType {
 function validate (fieldName, args, list) {
   if (args.minListLength !== undefined && list.length < args.minListLength) {
     throw new ValidationError(fieldName,
-      `Must be at least ${args.minListLength}`,
+      `Length of list must be at least ${args.minListLength}`,
       [{ arg: 'minListLength', value: args.minListLength }])
   }
 
   if (args.maxListLength !== undefined && list.length > args.maxListLength) {
     throw new ValidationError(fieldName,
-      `Must be no greater than ${args.maxListLength}`,
+      `Length of List must be no greater than ${args.maxListLength}`,
       [{ arg: 'maxListLength', value: args.maxListLength }])
   }
 }

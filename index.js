@@ -1,4 +1,6 @@
-const { GraphQLFloat, GraphQLInt, GraphQLString, GraphQLNonNull, isNonNullType, isScalarType } = require('graphql')
+const { GraphQLFloat, GraphQLInt, GraphQLString, GraphQLNonNull, isNonNullType, isScalarType, GraphQLList,
+  GraphQLScalarType
+} = require('graphql')
 const { getDirectives, mapSchema, MapperKind } = require('@graphql-tools/utils')
 const ConstraintStringType = require('./scalars/string')
 const ConstraintNumberType = require('./scalars/number')
@@ -8,7 +10,8 @@ const ConstraintListType = require('./scalars/list')
 function constraintDirective () {
   const constraintTypes = {}
 
-  function getConstraintType (fieldName, type, notNull, directiveArgumentMap) {
+  function getConstraintType (astNode, type, notNull, directiveArgumentMap) {
+    const fieldName = astNode.name.value
     // Names must match /^[_a-zA-Z][_a-zA-Z0-9]*$/ as p er graphql-js
     let uniqueTypeName
     if (directiveArgumentMap.uniqueTypeName) {
@@ -44,7 +47,6 @@ function constraintDirective () {
     } else {
       throw new Error(`Not a valid scalar type: ${type.toString()}`)
     }
-
     constraintTypes[key] = constraintType
 
     return constraintType
@@ -62,9 +64,10 @@ function constraintDirective () {
       throw new Error(`Not a scalar type: ${fieldConfig.type.toString()}`)
     }
 
-    const fieldName = fieldConfig.astNode.name.value
-
-    fieldConfig.type = getConstraintType(fieldName, originalType, notNull, directiveArgumentMap)
+    const astNode = fieldConfig.astNode
+    console.log(1, {fieldConfig})
+    fieldConfig.type = getConstraintType(astNode, originalType, notNull, directiveArgumentMap)
+    console.log(2, {fieldConfig})
   }
 
   return schema => mapSchema(schema, {
