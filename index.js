@@ -65,9 +65,7 @@ function constraintDirective () {
     }
 
     const astNode = fieldConfig.astNode
-    console.log(1, {fieldConfig})
     fieldConfig.type = getConstraintType(astNode, originalType, notNull, directiveArgumentMap)
-    console.log(2, {fieldConfig})
   }
 
   return schema => mapSchema(schema, {
