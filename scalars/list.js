@@ -1,4 +1,4 @@
-const { GraphQLScalarType, Kind, coerceInputValue } = require('graphql')
+const { GraphQLScalarType, Kind, coerceInputValue, valueFromASTUntyped } = require('graphql')
 const { parseInputValueLiteral } = require('@graphql-tools/utils')
 const ValidationError = require('../lib/error')
 
@@ -16,30 +16,12 @@ module.exports = class ConstraintListType extends GraphQLScalarType {
         return inputValue
       },
       parseLiteral (valueNode) {
-        switch (valueNode.kind) {
-          case Kind.BOOLEAN:
-          case Kind.STRING:
-            return valueNode.value
-          case Kind.INT:
-          case Kind.FLOAT:
-            return Number(valueNode.value)
-          case Kind.LIST: {
-            const values = parseInputValueLiteral(type, valueNode.values)
-            validate(fieldName, args, values)
-            return values
-          }
-          case Kind.OBJECT:
-            return valueNode.fields.reduce((object, field) => {
-              object[field.name.value] = this.parseLiteral(field.value)
-              return object
-            }, {})
-          case Kind.NULL:
-            return null
-          case Kind.VARIABLE:
-            return { kind: 'Variable', variableName: valueNode.name.value }
-          default:
-            return valueNode.value
+        if (valueNode.kind === Kind.LIST) {
+          const values = parseInputValueLiteral(type, valueNode.values)
+          validate(fieldName, args, values)
+          return values
         }
+        return valueFromASTUntyped(valueNode)
       }
     })
   }

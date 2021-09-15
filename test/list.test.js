@@ -1705,6 +1705,13 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
       })
     })
     describe('Object list', function () {
+      const objectQuery = `query {
+          books {
+            title {
+               name
+            }
+          }
+        }`
       before(function () {
         this.typeDefs = `
       type Query {
@@ -1725,7 +1732,7 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
         const { body, statusCode } = await request
           .post('/graphql')
           .set('Accept', 'application/json')
-          .send({ query })
+          .send({ query: objectQuery })
 
         strictEqual(statusCode, 200)
         deepStrictEqual(body, { data: { books: mockData } })
@@ -1737,7 +1744,7 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
         const { body, statusCode } = await request
           .post('/graphql')
           .set('Accept', 'application/json')
-          .send({ query })
+          .send({ query: objectQuery })
 
         strictEqual(statusCode, 200)
         strictEqual(body.errors[0].message, 'Length of List must be no greater than 2')
@@ -1749,7 +1756,7 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
         const { body, statusCode } = await request
           .post('/graphql')
           .set('Accept', 'application/json')
-          .send({ query })
+          .send({ query: objectQuery })
 
         strictEqual(statusCode, 200)
         deepStrictEqual(body.errors[0], {
@@ -1761,6 +1768,18 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
       })
     })
     describe('Complex Object list', function () {
+      const complexObjectQuery = `query {
+          books {
+            title {
+               name
+               size
+               origin {
+                  country
+                  code
+               }
+            }
+          }
+        }`
       before(function () {
         this.typeDefs = `
       type Query {
@@ -1796,7 +1815,7 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
         const { body, statusCode } = await request
           .post('/graphql')
           .set('Accept', 'application/json')
-          .send({ query })
+          .send({ query: complexObjectQuery })
 
         strictEqual(statusCode, 200)
         deepStrictEqual(body, { data: { books: mockData } })
@@ -1814,7 +1833,7 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
         const { body, statusCode } = await request
           .post('/graphql')
           .set('Accept', 'application/json')
-          .send({ query })
+          .send({ query: complexObjectQuery })
 
         strictEqual(statusCode, 200)
         strictEqual(body.errors[0].message, 'Length of List must be no greater than 2')
@@ -1832,7 +1851,7 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
         const { body, statusCode } = await request
           .post('/graphql')
           .set('Accept', 'application/json')
-          .send({ query })
+          .send({ query: complexObjectQuery })
 
         strictEqual(statusCode, 200)
         deepStrictEqual(body.errors[0], {
