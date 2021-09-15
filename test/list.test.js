@@ -441,7 +441,6 @@ describe('@constraint LIST in INPUT_FIELD_DEFINITION', function () {
           .send({
             query, variables: { input: { titles: ['1', '2', '3'] } }
           })
-        console.log(body)
         strictEqual(statusCode, 200)
         deepStrictEqual(body, { data: { createBook: null } })
       })
@@ -906,7 +905,6 @@ describe('@constraint LIST in INPUT_FIELD_DEFINITION', function () {
           .send({
             query, variables: { input: { titles: ['1', '2'] } }
           })
-        console.log(body)
         strictEqual(statusCode, 200)
         deepStrictEqual(body, { data: { createBook: null } })
       })
@@ -1206,6 +1204,13 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
       })
     })
     describe('Object list', function () {
+      const objectQuery = `query {
+          books {
+            title {
+               name
+            }
+          }
+        }`
       before(function () {
         this.typeDefs = `
       type Query {
@@ -1226,8 +1231,18 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
         const { body, statusCode } = await request
           .post('/graphql')
           .set('Accept', 'application/json')
-          .send({ query })
+          .send({ query: objectQuery })
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body, { data: { books: mockData } })
+      })
 
+      it('can be queried', async function () {
+        const mockData = { title: [{ name: '1' }, { name: '2' }, { name: '3' }] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query: objectQuery })
         strictEqual(statusCode, 200)
         deepStrictEqual(body, { data: { books: mockData } })
       })
@@ -1238,7 +1253,7 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
         const { body, statusCode } = await request
           .post('/graphql')
           .set('Accept', 'application/json')
-          .send({ query })
+          .send({ query: objectQuery })
 
         strictEqual(statusCode, 200)
         strictEqual(body.errors[0].message, 'Length of list must be at least 2')
@@ -1250,7 +1265,7 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
         const { body, statusCode } = await request
           .post('/graphql')
           .set('Accept', 'application/json')
-          .send({ query })
+          .send({ query: objectQuery })
 
         strictEqual(statusCode, 200)
         deepStrictEqual(body.errors[0], {
@@ -1262,6 +1277,18 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
       })
     })
     describe('Complex Object list', function () {
+      const complexObjectQuery = `query {
+          books {
+            title {
+               name
+               size
+               origin {
+                  country
+                  code
+               }
+            }
+          }
+        }`
       before(function () {
         this.typeDefs = `
       type Query {
@@ -1300,6 +1327,23 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
           .set('Accept', 'application/json')
           .send({ query })
 
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body, { data: { books: mockData } })
+      })
+
+      it('can be queried', async function () {
+        const mockData = {
+          title: [
+            { name: '1', size: 100, origin: { country: 'a', code: 'YES' } },
+            { name: '2', size: 200, origin: { country: 'b', code: 'NO' } },
+            { name: '3', size: 300, origin: { country: 'c', code: 'YES' } }
+          ]
+        }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query: complexObjectQuery })
         strictEqual(statusCode, 200)
         deepStrictEqual(body, { data: { books: mockData } })
       })
@@ -1441,6 +1485,472 @@ describe('@constraint Int in FIELD_DEFINITION', function () {
           code: 'ERR_GRAPHQL_CONSTRAINT_VALIDATION',
           fieldName: 'title',
           context: [{ arg: 'minListLength', value: 2 }]
+        })
+      })
+    })
+  })
+
+  describe('#maxListLength', function () {
+    describe('Int list', function () {
+      before(function () {
+        this.typeDefs = `
+      type Query {
+        books: Book
+      }
+      type Book {
+        title: [Int!]! @constraint(maxListLength: 2)
+      }
+      `
+      })
+
+      it('should pass', async function () {
+        const mockData = { title: [1, 2] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body, { data: { books: mockData } })
+      })
+
+      it('should fail', async function () {
+        const mockData = { title: [1, 2, 3] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        strictEqual(body.errors[0].message, 'Length of List must be no greater than 2')
+      })
+
+      it('should throw custom error', async function () {
+        const mockData = { title: [1, 2, 3] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body.errors[0], {
+          message: 'Length of List must be no greater than 2',
+          code: 'ERR_GRAPHQL_CONSTRAINT_VALIDATION',
+          fieldName: 'title',
+          context: [{ arg: 'maxListLength', value: 2 }]
+        })
+      })
+    })
+
+    describe('String list', function () {
+      before(function () {
+        this.typeDefs = `
+      type Query {
+        books: Book
+      }
+      type Book {
+        title: [String!]! @constraint(maxListLength: 2)
+      }
+      `
+      })
+
+      it('should pass', async function () {
+        const mockData = { title: ['1', '2'] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body, { data: { books: mockData } })
+      })
+
+      it('should fail', async function () {
+        const mockData = { title: ['1', '2', '3'] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        strictEqual(body.errors[0].message, 'Length of List must be no greater than 2')
+      })
+
+      it('should throw custom error', async function () {
+        const mockData = { title: ['1', '2', '3'] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body.errors[0], {
+          message: 'Length of List must be no greater than 2',
+          code: 'ERR_GRAPHQL_CONSTRAINT_VALIDATION',
+          fieldName: 'title',
+          context: [{ arg: 'maxListLength', value: 2 }]
+        })
+      })
+    })
+
+    describe('Float list', function () {
+      before(function () {
+        this.typeDefs = `
+      type Query {
+        books: Book
+      }
+      type Book {
+        title: [Float!]! @constraint(maxListLength: 2)
+      }
+      `
+      })
+
+      it('should pass', async function () {
+        const mockData = { title: [1.1, 2.2] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body, { data: { books: mockData } })
+      })
+
+      it('should fail', async function () {
+        const mockData = { title: [1.1, 2.2, 3.3] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+        strictEqual(statusCode, 200)
+        strictEqual(body.errors[0].message, 'Length of List must be no greater than 2')
+      })
+
+      it('should throw custom error', async function () {
+        const mockData = { title: [1.1, 2.2, 3.3] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body.errors[0], {
+          message: 'Length of List must be no greater than 2',
+          code: 'ERR_GRAPHQL_CONSTRAINT_VALIDATION',
+          fieldName: 'title',
+          context: [{ arg: 'maxListLength', value: 2 }]
+        })
+      })
+    })
+    describe('Boolean list', function () {
+      before(function () {
+        this.typeDefs = `
+      type Query {
+        books: Book
+      }
+      type Book {
+        title: [Boolean!]! @constraint(maxListLength: 2)
+      }
+      `
+      })
+
+      it('should pass', async function () {
+        const mockData = { title: [true, false] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body, { data: { books: mockData } })
+      })
+
+      it('should fail', async function () {
+        const mockData = { title: [true, true, false] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        strictEqual(body.errors[0].message, 'Length of List must be no greater than 2')
+      })
+
+      it('should throw custom error', async function () {
+        const mockData = { title: [true, true, false] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body.errors[0], {
+          message: 'Length of List must be no greater than 2',
+          code: 'ERR_GRAPHQL_CONSTRAINT_VALIDATION',
+          fieldName: 'title',
+          context: [{ arg: 'maxListLength', value: 2 }]
+        })
+      })
+    })
+    describe('Object list', function () {
+      before(function () {
+        this.typeDefs = `
+      type Query {
+        books: Book
+      }
+      type Title {
+        name: String!
+      }
+      type Book {
+        title: [Title!]! @constraint(maxListLength: 2)
+      }
+      `
+      })
+
+      it('should pass', async function () {
+        const mockData = { title: [{ name: '1' }, { name: '2' }] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body, { data: { books: mockData } })
+      })
+
+      it('should fail', async function () {
+        const mockData = { title: [{ name: '1' }, { name: '2' }, { name: '3' }] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        strictEqual(body.errors[0].message, 'Length of List must be no greater than 2')
+      })
+
+      it('should throw custom error', async function () {
+        const mockData = { title: [{ name: '1' }, { name: '2' }, { name: '3' }] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body.errors[0], {
+          message: 'Length of List must be no greater than 2',
+          code: 'ERR_GRAPHQL_CONSTRAINT_VALIDATION',
+          fieldName: 'title',
+          context: [{ arg: 'maxListLength', value: 2 }]
+        })
+      })
+    })
+    describe('Complex Object list', function () {
+      before(function () {
+        this.typeDefs = `
+      type Query {
+        books: Book
+      }
+      enum Codes {
+        YES
+        NO
+      }
+      type Origin {
+        country: String!
+        code: Codes!
+      }
+      type Title {
+        name: String!
+        size: Int
+        origin: Origin!
+      }
+      type Book {
+        title: [Title!]! @constraint(maxListLength: 2)
+      }
+      `
+      })
+
+      it('should pass', async function () {
+        const mockData = {
+          title: [
+            { name: '1', size: 100, origin: { country: 'a', code: 'YES' } },
+            { name: '2', size: 200, origin: { country: 'b', code: 'NO' } }
+          ]
+        }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body, { data: { books: mockData } })
+      })
+
+      it('should fail', async function () {
+        const mockData = {
+          title: [
+            { name: '1', size: 100, origin: { country: 'a', code: 'YES' } },
+            { name: '2', size: 200, origin: { country: 'b', code: 'NO' } },
+            { name: '3', size: 300, origin: { country: 'c', code: 'YES' } }
+          ]
+        }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        strictEqual(body.errors[0].message, 'Length of List must be no greater than 2')
+      })
+
+      it('should throw custom error', async function () {
+        const mockData = {
+          title: [
+            { name: '1', size: 100, origin: { country: 'a', code: 'YES' } },
+            { name: '2', size: 200, origin: { country: 'b', code: 'NO' } },
+            { name: '3', size: 300, origin: { country: 'c', code: 'YES' } }
+          ]
+        }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body.errors[0], {
+          message: 'Length of List must be no greater than 2',
+          code: 'ERR_GRAPHQL_CONSTRAINT_VALIDATION',
+          fieldName: 'title',
+          context: [{ arg: 'maxListLength', value: 2 }]
+        })
+      })
+    })
+    describe('Enum list', function () {
+      before(function () {
+        this.typeDefs = `
+      type Query {
+        books: Book
+      }
+      enum Rating { 
+        GOOD
+        BAD
+      }
+      type Book {
+        title: [Rating!]! @constraint(maxListLength: 2)
+      }
+      `
+      })
+
+      it('should pass', async function () {
+        const mockData = { title: ['GOOD', 'BAD'] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body, { data: { books: mockData } })
+      })
+
+      it('should fail', async function () {
+        const mockData = { title: ['GOOD', 'BAD', 'GOOD'] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        strictEqual(body.errors[0].message, 'Length of List must be no greater than 2')
+      })
+
+      it('should throw custom error', async function () {
+        const mockData = { title: ['GOOD', 'BAD', 'GOOD'] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body.errors[0], {
+          message: 'Length of List must be no greater than 2',
+          code: 'ERR_GRAPHQL_CONSTRAINT_VALIDATION',
+          fieldName: 'title',
+          context: [{ arg: 'maxListLength', value: 2 }]
+        })
+      })
+    })
+    describe('#uniqueTypeName', function () {
+      before(function () {
+        this.typeDefs = `
+         type Query {
+        books: Book
+      }
+      type Book {
+        title: [Int!]! @constraint(maxListLength: 2, uniqueTypeName: "BookInput_Title")
+      }`
+
+        this.request = setup(this.typeDefs)
+      })
+
+      it('should pass', async function () {
+        const mockData = { title: [1, 2] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body, { data: { books: mockData } })
+      })
+
+      it('should fail', async function () {
+        const mockData = { title: [1, 2, 3] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        strictEqual(body.errors[0].message, 'Length of List must be no greater than 2')
+      })
+
+      it('should throw custom error', async function () {
+        const mockData = { title: [1, 2, 3] }
+        const request = setup(this.typeDefs, formatError, resolvers(mockData))
+        const { body, statusCode } = await request
+          .post('/graphql')
+          .set('Accept', 'application/json')
+          .send({ query })
+
+        strictEqual(statusCode, 200)
+        deepStrictEqual(body.errors[0], {
+          message: 'Length of List must be no greater than 2',
+          code: 'ERR_GRAPHQL_CONSTRAINT_VALIDATION',
+          fieldName: 'title',
+          context: [{ arg: 'maxListLength', value: 2 }]
         })
       })
     })
